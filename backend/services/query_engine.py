@@ -1,4 +1,5 @@
 from services.data_loader import data_loader
+from services.llm_service import llm_service
 
 
 class QueryEngine:
@@ -7,48 +8,89 @@ class QueryEngine:
 
         df = data_loader.df
 
-        q = question.lower().strip()
+        try:
+            intent = llm_service.identify_intent(
+                question
+            )
+
+            print(
+                f"Question: {question}"
+            )
+
+            print(
+                f"Detected Intent: {intent}"
+            )
+
+        except Exception as e:
+
+            return (
+                f"LLM Error: {str(e)}"
+            )
 
         # ==========================
         # Total Tickets
         # ==========================
-        if "total" in q and "ticket" in q:
-            return f"There are {len(df)} total tickets."
+        if intent == "total_tickets":
+
+            return (
+                f"There are {len(df)} total tickets."
+            )
 
         # ==========================
         # Open Tickets
         # ==========================
-        if "open" in q and "ticket" in q:
+        elif intent == "open_tickets":
+
             count = len(
-                df[df["status"].str.lower() == "open"]
+                df[
+                    df["status"]
+                    .str.lower()
+                    == "open"
+                ]
             )
 
-            return f"There are {count} open tickets."
+            return (
+                f"There are {count} open tickets."
+            )
 
         # ==========================
         # Resolved Tickets
         # ==========================
-        if "resolved" in q and "ticket" in q:
+        elif intent == "resolved_tickets":
+
             count = len(
-                df[df["status"].str.lower() == "resolved"]
+                df[
+                    df["status"]
+                    .str.lower()
+                    == "resolved"
+                ]
             )
 
-            return f"There are {count} resolved tickets."
+            return (
+                f"There are {count} resolved tickets."
+            )
 
         # ==========================
         # Escalated Tickets
         # ==========================
-        if "escalated" in q:
+        elif intent == "escalated_tickets":
+
             count = len(
-                df[df["status"].str.lower() == "escalated"]
+                df[
+                    df["status"]
+                    .str.lower()
+                    == "escalated"
+                ]
             )
 
-            return f"There are {count} escalated tickets."
+            return (
+                f"There are {count} escalated tickets."
+            )
 
         # ==========================
         # Critical Tickets
         # ==========================
-        if "critical" in q and "unresolved" not in q:
+        elif intent == "critical_tickets":
 
             count = len(
                 df[
@@ -63,26 +105,9 @@ class QueryEngine:
             )
 
         # ==========================
-        # High Priority Tickets
+        # Unresolved Critical
         # ==========================
-        if "high priority" in q:
-
-            count = len(
-                df[
-                    df["priority"]
-                    .str.lower()
-                    == "high"
-                ]
-            )
-
-            return (
-                f"There are {count} high-priority tickets."
-            )
-
-        # ==========================
-        # Unresolved Critical Tickets
-        # ==========================
-        if "critical" in q and "unresolved" in q:
+        elif intent == "unresolved_critical":
 
             count = len(
                 df[
@@ -97,23 +122,23 @@ class QueryEngine:
             )
 
         # ==========================
-        # Average Customer Rating
+        # Average Rating
         # ==========================
-        if "average" in q and "rating" in q:
+        elif intent == "average_rating":
 
-            rating = round(
+            avg = round(
                 df["customer_rating"].mean(),
                 2
             )
 
             return (
-                f"The average customer rating is {rating}."
+                f"The average customer rating is {avg}."
             )
 
         # ==========================
         # Average Response Time
         # ==========================
-        if "response time" in q:
+        elif intent == "average_response_time":
 
             avg = round(
                 df["response_time_hrs"].mean(),
@@ -127,7 +152,7 @@ class QueryEngine:
         # ==========================
         # Average Resolution Time
         # ==========================
-        if "resolution time" in q:
+        elif intent == "average_resolution_time":
 
             avg = round(
                 df["resolution_time_hrs"].mean(),
@@ -141,14 +166,7 @@ class QueryEngine:
         # ==========================
         # Most Common Category
         # ==========================
-        if (
-            "category" in q
-            and (
-                "most" in q
-                or "highest" in q
-                or "top" in q
-            )
-        ):
+        elif intent == "most_common_category":
 
             category = (
                 df["category"]
@@ -168,36 +186,9 @@ class QueryEngine:
             )
 
         # ==========================
-        # Lowest Rated Agent
-        # ==========================
-        if "lowest" in q and "agent" in q:
-
-            ratings = (
-                df.groupby("agent_id")
-                ["customer_rating"]
-                .mean()
-            )
-
-            agent = ratings.idxmin()
-
-            score = round(
-                ratings.min(),
-                2
-            )
-
-            return (
-                f"{agent} has the lowest average "
-                f"rating of {score}."
-            )
-
-        # ==========================
         # Highest Rated Agent
         # ==========================
-        if (
-            "highest" in q and "agent" in q
-        ) or (
-            "best agent" in q
-        ):
+        elif intent == "highest_rated_agent":
 
             ratings = (
                 df.groupby("agent_id")
@@ -218,30 +209,39 @@ class QueryEngine:
             )
 
         # ==========================
-        # Status Breakdown
+        # Lowest Rated Agent
         # ==========================
-        if (
-            "status distribution" in q
-            or "status breakdown" in q
-        ):
+        elif intent == "lowest_rated_agent":
 
-            status_counts = (
-                df["status"]
-                .value_counts()
-                .to_dict()
+            ratings = (
+                df.groupby("agent_id")
+                ["customer_rating"]
+                .mean()
             )
 
-            return str(status_counts)
+            agent = ratings.idxmin()
+
+            score = round(
+                ratings.min(),
+                2
+            )
+
+            return (
+                f"{agent} has the lowest average "
+                f"rating of {score}."
+            )
 
         # ==========================
-        # Fallback
+        # Unknown Question
         # ==========================
-        return (
-            "I can answer questions about total tickets, "
-            "open tickets, resolved tickets, escalated tickets, "
-            "critical tickets, customer ratings, agents, "
-            "categories, response times and resolution times."
-        )
+        else:
+
+            return (
+                "I couldn't understand that question. "
+                "Please ask about tickets, ratings, "
+                "agents, categories, response times, "
+                "or resolution times."
+            )
 
 
 query_engine = QueryEngine()
