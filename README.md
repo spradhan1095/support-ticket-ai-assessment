@@ -2,111 +2,88 @@
 
 ## Overview
 
-This project is an AI-powered Support Ticket Analytics System built using FastAPI, Streamlit, Pandas, and Python. The application enables users to analyze support ticket data, detect anomalies, and interact with the dataset using natural language queries.
+This project is an AI-powered Support Ticket Analytics System built using FastAPI, Streamlit, Pandas, and Groq Llama 3.1. The system enables users to analyze support ticket data, detect anomalies, visualize operational metrics, and ask natural language questions about ticket performance.
 
-The system processes a CSV dataset containing support tickets and provides insights through APIs and an interactive dashboard.
+The solution combines Large Language Models (LLMs) for intent understanding with deterministic analytics using Pandas to ensure accurate and reliable results.
 
 ---
 
 ## Features
 
-### Natural Language Querying
-
-Users can ask questions in plain English such as:
-
-* How many open tickets are there?
-* How many resolved tickets are there?
-* Which category has the most tickets?
-* Which agent has the highest rating?
-* What is the average customer rating?
-* What is the average response time?
-
-The query engine interprets user intent and performs data analysis directly on the dataset to return accurate responses.
-
----
-
-### Anomaly Detection
-
-The system identifies potential operational issues using predefined business rules:
-
-#### Long Resolution Time
-
-Tickets with unusually high resolution times compared to the dataset average.
-
-#### Critical Unresolved Tickets
-
-Critical priority tickets that have not been resolved.
-
-#### Poor Customer Ratings
-
-Tickets with customer ratings less than or equal to 2.
-
-#### Slow Response Time
-
-Tickets with response times greater than 24 hours.
-
----
-
 ### Dashboard Analytics
-
-The Streamlit dashboard provides:
 
 * Total Tickets
 * Open Tickets
 * Resolved Tickets
 * Escalated Tickets
 * Average Customer Rating
-
-Visualizations include:
-
 * Ticket Status Distribution
 * Priority Distribution
 * Agent Performance Analysis
 
----
+### Natural Language Querying
 
-## Project Architecture
+Users can ask questions such as:
 
-```text
-Support Ticket CSV
-        │
-        ▼
-Data Loader (Pandas)
-        │
-        ▼
-Query Engine
-        │
-        ├────────► Analytics Service
-        │
-        ├────────► Anomaly Detector
-        │
-        ▼
-FastAPI Backend
-        │
-        ▼
-Streamlit Frontend
-```
+* How many open tickets are there?
+* Which support engineer is performing best?
+* What is the average customer rating?
+* Which category has the most tickets?
+* How many escalated tickets exist?
+
+The system uses a Groq-hosted Llama 3.1 model to identify user intent and then performs the required analytics using Pandas.
+
+### Anomaly Detection
+
+The system automatically identifies:
+
+* Tickets with unusually long resolution times
+* Critical unresolved tickets
+* Poor customer ratings
+* Slow response times
 
 ---
 
-## Folder Structure
+## Technology Stack
+
+### Backend
+
+* FastAPI
+* Python
+* Pandas
+* NumPy
+* Pydantic
+* Groq API
+
+### Frontend
+
+* Streamlit
+* Plotly
+
+### AI / LLM
+
+* Groq Llama 3.1
+
+---
+
+## Project Structure
 
 ```text
-support-ticket-ai/
+support_ticket_ai/
 │
 ├── backend/
 │   ├── api/
 │   │   ├── health.py
 │   │   ├── query.py
-│   │   ├── anomaly.py
-│   │   └── dashboard.py
+│   │   ├── dashboard.py
+│   │   └── anomaly.py
 │   │
 │   ├── services/
 │   │   ├── data_loader.py
-│   │   ├── query_engine.py
-│   │   ├── anomaly_detector.py
 │   │   ├── analytics_service.py
-│   │   └── llm_service.py
+│   │   ├── anomaly_detector.py
+│   │   ├── llm_service.py
+│   │   └── query_engine.py
 │   │
 │   ├── schemas/
 │   │   └── schemas.py
@@ -120,8 +97,6 @@ support-ticket-ai/
 ├── frontend/
 │   └── app.py
 │
-├── tests/
-│
 ├── requirements.txt
 ├── .env
 └── README.md
@@ -129,30 +104,38 @@ support-ticket-ai/
 
 ---
 
-## Technologies Used
+## Architecture
 
-### Backend
-
-* FastAPI
-* Python
-* Pandas
-* NumPy
-* Pydantic
-
-### Frontend
-
-* Streamlit
-* Plotly
-
-### AI Components
-
-* Rule-Based Query Engine
-* Natural Language Processing Logic
-
-### Data Processing
-
-* Pandas DataFrames
-* Statistical Analysis
+```text
+Support Ticket CSV
+        │
+        ▼
+   Data Loader
+        │
+        ▼
+ Pandas DataFrame
+        │
+ ┌──────┼──────────┐
+ │      │          │
+ ▼      ▼          ▼
+Analytics  Query Engine  Anomaly Detector
+              │
+              ▼
+          Groq LLM
+     (Intent Detection)
+              │
+              ▼
+      Structured Intent
+              │
+              ▼
+       Pandas Analysis
+              │
+              ▼
+          FastAPI APIs
+              │
+              ▼
+        Streamlit UI
+```
 
 ---
 
@@ -174,21 +157,35 @@ Response:
 
 ---
 
-### Dashboard Summary
+### Dashboard Metrics
 
 ```http
 GET /dashboard
 ```
 
-Returns:
+Returns dashboard KPIs.
+
+---
+
+### Query Endpoint
+
+```http
+POST /query
+```
+
+Request:
 
 ```json
 {
-  "total_tickets": 500,
-  "open_tickets": 111,
-  "resolved_tickets": 295,
-  "escalated_tickets": 94,
-  "avg_rating": 3.45
+  "question": "Who is the best support engineer?"
+}
+```
+
+Response:
+
+```json
+{
+  "answer": "AGT-05 has the highest average rating of 4.8."
 }
 ```
 
@@ -200,31 +197,70 @@ Returns:
 GET /anomalies
 ```
 
-Returns detected anomalies and anomaly count.
+Returns detected anomalies.
 
 ---
 
-### Natural Language Query
+## Anomaly Detection Logic
 
-```http
-POST /query
+### Rule 1: Long Resolution Time
+
+Tickets with:
+
+```text
+Resolution Time > Mean + 2 × Standard Deviation
 ```
 
-Request:
+are flagged as anomalies.
 
-```json
-{
-  "question": "How many open tickets are there?"
-}
+### Rule 2: Critical Unresolved Tickets
+
+```text
+Priority = Critical
+AND
+Status ≠ Resolved
 ```
 
-Response:
+### Rule 3: Poor Customer Rating
 
-```json
-{
-  "answer": "There are 111 open tickets."
-}
+```text
+Customer Rating ≤ 2
 ```
+
+### Rule 4: Slow Response Time
+
+```text
+Response Time > 24 Hours
+```
+
+---
+
+## LLM Integration
+
+The project uses Groq Llama 3.1 for intent detection.
+
+Example:
+
+User Question:
+
+```text
+Who is the best support engineer?
+```
+
+LLM Intent:
+
+```text
+highest_rated_agent
+```
+
+The Query Engine then executes the corresponding Pandas operation and returns the result.
+
+This hybrid architecture combines:
+
+* Natural Language Understanding (LLM)
+* Deterministic Analytics (Pandas)
+
+to ensure both flexibility and accuracy.
 
 ---
 
@@ -234,18 +270,14 @@ Response:
 
 ```bash
 git clone <repository_url>
-cd support-ticket-ai
+cd support_ticket_ai
 ```
-
----
 
 ### Create Virtual Environment
 
 ```bash
 python -m venv .venv
 ```
-
----
 
 ### Activate Virtual Environment
 
@@ -255,7 +287,11 @@ Windows:
 .venv\Scripts\activate
 ```
 
----
+Linux / Mac:
+
+```bash
+source .venv/bin/activate
+```
 
 ### Install Dependencies
 
@@ -265,24 +301,35 @@ pip install -r requirements.txt
 
 ---
 
+## Environment Variables
+
+Create a `.env` file:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.1-8b-instant
+```
+
+---
+
 ## Running the Backend
 
-Navigate to backend folder:
+Navigate to backend directory:
 
 ```bash
 cd backend
 ```
 
-Run FastAPI:
+Start FastAPI:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-Swagger Documentation:
+Swagger UI:
 
 ```text
-http://127.0.0.1:8000/docs
+http://localhost:8000/docs
 ```
 
 ---
@@ -295,7 +342,7 @@ Open a new terminal:
 cd frontend
 ```
 
-Run Streamlit:
+Start Streamlit:
 
 ```bash
 streamlit run app.py
@@ -309,56 +356,32 @@ http://localhost:8501
 
 ---
 
-## Sample Questions
-
-The system can answer:
-
-* How many total tickets are there?
-* How many open tickets are there?
-* How many resolved tickets are there?
-* How many escalated tickets are there?
-* How many critical tickets are there?
-* How many unresolved critical tickets are there?
-* Which category has the most tickets?
-* Which agent has the highest rating?
-* Which agent has the lowest rating?
-* What is the average customer rating?
-* What is the average response time?
-* What is the average resolution time?
-
----
-
-## Design Decisions
-
-### Why FastAPI?
-
-FastAPI provides high performance, automatic API documentation, data validation, and a clean architecture for backend services.
-
-### Why Streamlit?
-
-Streamlit allows rapid development of data-centric dashboards and analytics applications with minimal frontend complexity.
-
-### Why a Rule-Based Query Engine?
-
-Instead of relying solely on an LLM, the system performs calculations directly on the dataset using Pandas. This ensures:
-
-* Accurate results
-* No hallucinations
-* Better explainability
-* Deterministic outputs
-
----
-
 ## Future Enhancements
 
-* PostgreSQL integration
-* LangChain-based AI Agents
-* Role-Based Access Control
-* Docker Deployment
-* Cloud Deployment (AWS/Azure/GCP)
-* Real-time ticket ingestion
-* Advanced Machine Learning-based anomaly detection
-* Vector Database integration for semantic search
+* PostgreSQL Integration
+* Redis Caching
+* Role-Based Authentication
+* Semantic Search with Vector Databases
+* Retrieval-Augmented Generation (RAG)
+* Machine Learning-Based Anomaly Detection
+* NL-to-SQL Query Generation
+* Agentic AI Workflows
+
+---
+
+## Trade-Offs
+
+### CSV vs Database
+
+CSV was selected for simplicity and rapid development given the small dataset size. PostgreSQL would be preferred for large-scale production workloads.
+
+### Rule-Based Anomaly Detection
+
+Rule-based detection provides explainability and simplicity. Machine learning methods could improve detection of complex anomaly patterns.
+
+### Streamlit vs React
+
+Streamlit enabled rapid dashboard development while allowing focus on AI and backend functionality.
 
 ---
 
